@@ -49,9 +49,31 @@ def get_connection(db = None):
 
 def main():
     load_dotenv()
+    Main_Menu()
+    Statistics_Menu()
     conn = run_db()
     conn.close()
     # app.run()
+
+def Main_Menu():
+    print("Main Menu:\n",
+          "1. Enter daily health data\n",
+          "2. View all health data\n",
+          "3. Create new habit\n",
+          "4. List all habits\n",
+          "5. Log daily habit\n",
+          "6. View habits log\n",
+          "7. View statistics\n",
+          "Quit\n")
+    
+def Statistics_Menu():
+    print("Statistics:\n",
+          "1. Your health summary\n",
+          "2. Your average sleep /night\n",
+          "3. Your sleep impact")
+    print("Habits:\n",
+          "4. Your high streaks")
+    print("Go Back!\n")
 
 def init_db(conn, db_name: str) -> None:
     cur = conn.cursor()
