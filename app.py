@@ -166,7 +166,7 @@ def init_schema(conn, db_name: str) -> None:
     cur.execute(query)
 
     query = """
-    CREATE TABLE alerts(
+    CREATE TABLE IF NOT EXISTS alerts(
     entry_date DATE DEFAULT (CURDATE()),
     alert_id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
     alert_type VARCHAR(100) NOT NULL,
