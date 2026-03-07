@@ -89,3 +89,29 @@ SELECT
     AVG(energy_level) AS avg_energy
 FROM daily_entries
 group by entry_date;
+
+
+DELIMITER //
+
+CREATE PROCEDURE summary (IN p_days INT)
+BEGIN
+
+SELECT
+    COUNT(*) AS nr_of_entries,
+    ROUND(AVG(hours_slept), 1) AS avg_sleep,
+    ROUND(AVG(mood_level), 1) AS avg_mood,
+    ROUND(AVG(stress_level), 1) AS avg_stress,
+    ROUND(AVG(energy_level), 1) AS avg_energy,
+
+    (
+        SELECT COUNT(*)
+        FROM habit_date_completion
+        WHERE entry_date >= CURDATE() - INTERVAL p_days DAY
+    ) AS total_habits_logged
+
+FROM daily_entries
+WHERE entry_date >= CURDATE() - INTERVAL p_days DAY;
+
+END //
+
+DELIMITER ;
