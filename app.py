@@ -33,11 +33,18 @@ def get_daily_entries():
 
     return jsonify(result)
 
-def enter_health_data():
-    conn = get_connection()
-    init_db(conn, DB_NAME)
+def enter_health_data(conn):
     cur = conn.cursor()
-
+    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes"
+                " FROM daily_entries"
+                " WHERE entry_date = (CURDATE())")
+    rows = cur.fetchall()
+    if len(rows) > 0:
+        print("Daily entry already recorded")
+        cur.close()
+        conn.close()
+        input("Press enter to continue.")
+        return
     try:
         sleep = int(input("How many hours did you sleep?\n->"))
         mood = int(input("How is your mood level on a scale from 1-10?\n->"))
@@ -51,6 +58,7 @@ def enter_health_data():
         conn.commit()
 
         print("Data entered successfully!")
+        input("Press enter to continue.")
 
     except ValueError:
         print("You must enter a number.")
@@ -82,13 +90,13 @@ def main():
     while is_running:
         Main_Menu()
         choice = input("--> ")
-        is_running = handle_main_menu_input(choice)
+        is_running = handle_main_menu_input(choice, conn)
 
     conn.close()
 
-def handle_main_menu_input(choice):
+def handle_main_menu_input(choice, conn):
     if choice == "1":
-        enter_health_data()
+        enter_health_data(conn)
         return True
     elif choice == "2":
         return True
@@ -230,7 +238,7 @@ def setup_database():
 def get_daily_entries():
     conn = get_connection(DB_NAME)
     cur = conn.cursor()
-    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries")
+    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries WHERE entry_date = (CURDATE())")
     rows = cur.fetchall()
     cur.close()
     print("Fetched rows:", len(rows))
