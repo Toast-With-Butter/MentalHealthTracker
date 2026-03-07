@@ -67,7 +67,6 @@ def init_db(conn, db_name: str) -> None:
 def run_db():
     conn = get_connection()
     init_db(conn, DB_NAME)
-    conn.close()
 
     conn = get_connection(DB_NAME)
     cur = conn.cursor()
@@ -83,6 +82,7 @@ def run_db():
         print(f"Hours Slept: {hours_slept}")
         print(f"Notes: {notes}")
         print("-" * 40)
+    return conn;
 
 
 if __name__ == '__main__':
