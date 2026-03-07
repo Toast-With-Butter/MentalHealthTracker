@@ -79,6 +79,8 @@ def Statistics_Menu():
           "4. Your high streaks")
     print("Go Back!\n")
 
+#added a comment
+
 def init_db(conn, db_name: str) -> None:
     cur = conn.cursor()
 
