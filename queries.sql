@@ -17,6 +17,22 @@ CREATE TABLE habit_logs(
     FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
     );
 
+CREATE TABLE IF NOT EXISTS daily_entries (
+    entry_date DATE NOT NULL PRIMARY KEY DEFAULT (CURDATE()),
+    hours_slept INT NOT NULL,
+    mood_level INT NOT NULL,
+    stress_level INT NOT NULL,
+    energy_level INT NOT NULL,
+    notes VARCHAR(255)
+);
+
+CREATE TABLE alerts(
+    entry_date DATE DEFAULT (CURDATE()),
+    alert_id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+    alert_type VARCHAR(100) NOT NULL,
+    alert_message VARCHAR(255) NOT NULL
+);
+
 
 insert into habits (habit_name, entry_date, notes)
 value
