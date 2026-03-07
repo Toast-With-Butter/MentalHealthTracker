@@ -89,7 +89,11 @@ def init_db(conn, db_name: str) -> None:
 def run_db():
     conn = get_connection()
     init_db(conn, DB_NAME)
+    conn.close()
+    get_daily_entries()
+    return conn
 
+def get_daily_entries():
     conn = get_connection(DB_NAME)
     cur = conn.cursor()
     cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries")
@@ -104,8 +108,6 @@ def run_db():
         print(f"Hours Slept: {hours_slept}")
         print(f"Notes: {notes}")
         print("-" * 40)
-    return conn;
-
 
 if __name__ == '__main__':
     main()
