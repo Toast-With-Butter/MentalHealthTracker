@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 import os
 from dotenv import load_dotenv
 import mysql.connector
-from seed_mental_health_tracker import preview_entries, iter_entries
+import seed_mental_health_tracker
 
 app = Flask(__name__)
 
@@ -62,7 +62,7 @@ def enter_health_data():
 
 @app.route('/')
 def hello_world():  # put application's code here
-    run_db()
+    setup_database()
     return 'Hello World!!'
 
 def get_connection(db = None):
@@ -76,17 +76,15 @@ def get_connection(db = None):
 
 def main():
     load_dotenv()
-    conn = run_db()
+    conn = setup_database()
+
     is_running = True
     while is_running:
         Main_Menu()
         choice = input("--> ")
         is_running = handle_main_menu_input(choice)
 
-    #preview_entries("habits.csv", 2)
     conn.close()
-
-    # app.run()
 
 def handle_main_menu_input(choice):
     if choice == "1":
@@ -148,14 +146,13 @@ def Statistics_Menu():
 
 def init_db(conn, db_name: str) -> None:
     cur = conn.cursor()
-
     cur.execute(
         f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
         "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
     )
     cur.execute(f"USE `{db_name}`")
-    init_schema(conn, db_name)
     cur.close()
+    print("Created database")
 
 def init_schema(conn, db_name: str) -> None:
     cur = conn.cursor()
@@ -202,13 +199,32 @@ def init_schema(conn, db_name: str) -> None:
     )
     """
     cur.execute(query)
-
     cur.close()
+    print("Created tables")
+
+def populate_tables(conn):
+    seed_mental_health_tracker.insert_habits(conn)
+    seed_mental_health_tracker.insert_daily_entries(conn)
+    seed_mental_health_tracker.insert_habit_logs(conn)
+    seed_mental_health_tracker.insert_alerts(conn)
+    print("Populated tables")
+
+def create_procedures(conn):
+    pass
+
+def create_functions(conn):
+    pass
 
 def run_db():
+    pass
+
+def setup_database():
     conn = get_connection()
     init_db(conn, DB_NAME)
-    conn.close()
+    init_schema(conn, DB_NAME)
+    populate_tables(conn)
+    create_procedures(conn)
+    create_functions (conn)
     return conn
 
 def get_daily_entries():

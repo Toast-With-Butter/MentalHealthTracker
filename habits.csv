@@ -1,3 +1,5 @@
+habit_id,habit_name,entry_date,notes
 "1","2 km run","2026-03-01","A run in the forest"
 "2","Crochet","2026-03-01","Making a sweater"
 "3","Reading","2026-03-02","Just one more chapter!"
+"4","Watching Emily in Paris","2026-03-02","Why is she in Italy now?"
