@@ -50,14 +50,53 @@ def get_connection(db = None):
 
 def main():
     load_dotenv()
-    Main_Menu()
-    Statistics_Menu()
     conn = run_db()
+    is_running = True
+    while is_running:
+        Main_Menu()
+        choice = input("--> ")
+        is_running = handle_main_menu_input(choice)
 
     #preview_entries("habits.csv", 2)
     conn.close()
 
     # app.run()
+
+def handle_main_menu_input(choice):
+    if choice == "1":
+        return True
+    elif choice == "2":
+        return True
+    elif choice == "3":
+        return True
+    elif choice == "4":
+        return True
+    elif choice == "5":
+        return True
+    elif choice == "6":
+        return True
+    elif choice == "7":
+        Statistics_Menu()
+        subchoice = input("--> ")
+        handle_statistics_menu_input(subchoice)
+        return True
+    elif choice in "qQ":
+        return False
+    else:
+        return True
+
+def handle_statistics_menu_input(choice):
+    if choice == "1":
+        pass
+    elif choice == "2":
+        pass
+    elif choice == "3":
+        pass
+    elif choice == "4":
+        pass
+    elif choice in "qQ":
+        pass
+
 
 def Main_Menu():
     print("Main Menu:\n",
@@ -68,7 +107,7 @@ def Main_Menu():
           "5. Log daily habit\n",
           "6. View habits log\n",
           "7. View statistics\n",
-          "Quit\n")
+          "Q. Quit\n")
     
 def Statistics_Menu():
     print("Statistics:\n",
@@ -77,9 +116,8 @@ def Statistics_Menu():
           "3. Your sleep impact")
     print("Habits:\n",
           "4. Your high streaks")
-    print("Go Back!\n")
+    print("Q. Go Back!\n")
 
-#added a comment
 
 def init_db(conn, db_name: str) -> None:
     cur = conn.cursor()
