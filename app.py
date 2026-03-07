@@ -35,7 +35,7 @@ def get_daily_entries():
 
 @app.route('/')
 def hello_world():  # put application's code here
-    run_db()
+    setup_database()
     return 'Hello World!!'
 
 def get_connection(db = None):
@@ -49,8 +49,8 @@ def get_connection(db = None):
 
 def main():
     load_dotenv()
-    conn = run_db()
-    populate_tables(conn)
+    conn = setup_database()
+
     is_running = True
     while is_running:
         Main_Menu()
@@ -58,15 +58,6 @@ def main():
         is_running = handle_main_menu_input(choice)
 
     conn.close()
-
-    # app.run()
-
-def populate_tables(conn):
-    seed_mental_health_tracker.insert_habits(conn)
-    seed_mental_health_tracker.insert_daily_entries(conn)
-    seed_mental_health_tracker.insert_habit_logs(conn)
-    seed_mental_health_tracker.insert_alerts(conn)
-    print("Populated tables")
 
 def handle_main_menu_input(choice):
     if choice == "1":
@@ -133,6 +124,7 @@ def init_db(conn, db_name: str) -> None:
     )
     cur.execute(f"USE `{db_name}`")
     cur.close()
+    print("Created database")
 
 def init_schema(conn, db_name: str) -> None:
     cur = conn.cursor()
@@ -179,14 +171,31 @@ def init_schema(conn, db_name: str) -> None:
     )
     """
     cur.execute(query)
-
     cur.close()
+    print("Created tables")
+
+def populate_tables(conn):
+    seed_mental_health_tracker.insert_habits(conn)
+    seed_mental_health_tracker.insert_daily_entries(conn)
+    seed_mental_health_tracker.insert_habit_logs(conn)
+    seed_mental_health_tracker.insert_alerts(conn)
+    print("Populated tables")
+
+def create_procedures(conn):
+    pass
+
+def create_functions(conn):
+    pass
 
 
-def run_db():
+
+def setup_database():
     conn = get_connection()
     init_db(conn, DB_NAME)
     init_schema(conn, DB_NAME)
+    populate_tables(conn)
+    create_procedures(conn)
+    create_functions (conn)
     return conn
 
 def get_daily_entries():
