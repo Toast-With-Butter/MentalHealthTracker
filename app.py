@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import os
 from dotenv import load_dotenv
 import mysql.connector
+from seed_mental_health_tracker import preview_entries, iter_entries
 
 app = Flask(__name__)
 
@@ -52,7 +53,10 @@ def main():
     Main_Menu()
     Statistics_Menu()
     conn = run_db()
+
+    #preview_entries("habits.csv", 2)
     conn.close()
+
     # app.run()
 
 def Main_Menu():
@@ -83,6 +87,33 @@ def init_db(conn, db_name: str) -> None:
         "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
     )
     cur.execute(f"USE `{db_name}`")
+    init_schema(conn, db_name)
+    cur.close()
+
+def init_schema(conn, db_name: str) -> None:
+    cur = conn.cursor()
+    query = """
+    CREATE TABLE IF NOT EXISTS habits (
+        habit_id   INT AUTO_INCREMENT PRIMARY KEY,
+        habit_name VARCHAR(100) NOT NULL,
+        entry_date DATE         NOT NULL DEFAULT (CURDATE()),
+        notes      VARCHAR(255)
+    )
+    """
+    cur.execute(query)
+
+    query = """
+    CREATE TABLE habit_logs(
+	habit_log_id INT AUTO_INCREMENT PRIMARY KEY, 
+    habit_id INT NOT NULL,
+    entry_date DATE NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    UNIQUE (habit_id, entry_date),
+    FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
+    );
+    """
+    cur.execute(query)
+
     cur.close()
 
 
@@ -90,7 +121,6 @@ def run_db():
     conn = get_connection()
     init_db(conn, DB_NAME)
     conn.close()
-    get_daily_entries()
     return conn
 
 def get_daily_entries():
