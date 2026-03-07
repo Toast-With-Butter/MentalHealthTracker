@@ -103,7 +103,7 @@ def init_schema(conn, db_name: str) -> None:
     cur.execute(query)
 
     query = """
-    CREATE TABLE habit_logs(
+    CREATE TABLE IF NOT EXISTS habit_logs(
 	habit_log_id INT AUTO_INCREMENT PRIMARY KEY, 
     habit_id INT NOT NULL,
     entry_date DATE NOT NULL,
