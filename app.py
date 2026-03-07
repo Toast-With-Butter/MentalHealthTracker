@@ -33,6 +33,33 @@ def get_daily_entries():
 
     return jsonify(result)
 
+def enter_health_data():
+    conn = get_connection()
+    init_db(conn, DB_NAME)
+    cur = conn.cursor()
+
+    try:
+        sleep = int(input("How many hours did you sleep?\n->"))
+        mood = int(input("How is your mood level on a scale from 1-10?\n->"))
+        stress = int(input("How is your stress level on a scale from 1-10?\n->"))
+        energy = int(input("How is your energy level on a scale from 1-10?\n->"))
+        notes = str(input("Any notes:\n->"))
+
+        sql = "INSERT IGNORE INTO daily_entries (hours_slept, mood_level, stress_level, energy_level, notes)" \
+        "VALUES (%s, %s, %s, %s, %s)"
+        cur.execute(sql,(sleep, mood, stress, energy, notes))
+        conn.commit()
+
+        print("Data entered successfully!")
+
+    except ValueError:
+        print("You must enter a number.")
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.route('/')
 def hello_world():  # put application's code here
     run_db()
@@ -63,6 +90,7 @@ def main():
 
 def handle_main_menu_input(choice):
     if choice == "1":
+        enter_health_data()
         return True
     elif choice == "2":
         return True
@@ -176,7 +204,6 @@ def init_schema(conn, db_name: str) -> None:
     cur.execute(query)
 
     cur.close()
-
 
 def run_db():
     conn = get_connection()
