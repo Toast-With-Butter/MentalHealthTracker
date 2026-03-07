@@ -110,7 +110,7 @@ def init_schema(conn, db_name: str) -> None:
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (habit_id, entry_date),
     FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
-    );
+    )
     """
     cur.execute(query)
 
