@@ -1,8 +1,11 @@
 from flask import Flask, jsonify
+from tabulate import tabulate
 import os
 from dotenv import load_dotenv
 import mysql.connector
 import seed_mental_health_tracker
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 app = Flask(__name__)
 
@@ -152,6 +155,53 @@ def view_alerts(conn):
         print(f" {str(entry_date):<16} {alert_type:<40} {alert_message}")
     input("Press enter to continue.")
 
+def print_summary(conn):
+    cur = conn.cursor()
+
+    days = int(input("How many days do you want to summarize?\n->"))
+    print(f"You chose an interval of {days}.")
+    cur.callproc("summary", [days])
+
+    for result in cur.stored_results():
+        columns = [col[0] for col in result.description]
+        rows = result.fetchall()
+
+    print(tabulate(rows, headers=columns, tablefmt="pretty"))
+    
+    input("Press enter to continue.")
+    cur.close()
+
+def print_avg_sleep(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT avg_hours_of_sleep();")
+    hours = cur.fetchone()
+    print(f"Average hours of sleep: {hours[0]:.1f}")
+
+    input("Press enter to continue.")
+    cur.close()
+
+def habit_high_streak(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT habit_id, habit_name FROM habits")
+    rows = cur.fetchall()
+    cur.close()
+    print("Choose the habit you would like to check the streak for:")
+    for habit_id, habit_name in rows:
+        print(f" {habit_id}. {habit_name} ")
+    
+    try:
+        h_id = int(input("--> "))
+        cur = conn.cursor()
+        cur.execute("SELECT get_highest_streak(%s)", (h_id,))
+        result = cur.fetchone()
+        print(f"Your highest streak is: {result[0]}")
+        input("Press enter to continue.")
+    except ValueError:
+        print("You must enter a number.")
+        input("Press enter to continue.")
+
+    cur.close()
+
 def get_connection(db = None):
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
@@ -210,7 +260,7 @@ def handle_main_menu_input(choice, conn):
     elif choice == "7":
         Statistics_Menu()
         subchoice = input("--> ")
-        handle_statistics_menu_input(subchoice)
+        handle_statistics_menu_input(subchoice, conn)
         return True
     elif choice == "8":
         view_alerts(conn)
@@ -220,15 +270,18 @@ def handle_main_menu_input(choice, conn):
     else:
         return True
 
-def handle_statistics_menu_input(choice):
+def handle_statistics_menu_input(choice, conn):
     if choice == "1":
-        pass
+        print_summary(conn)
+        return True
     elif choice == "2":
-        pass
+        print_avg_sleep(conn)
+        return True
     elif choice == "3":
         pass
     elif choice == "4":
-        pass
+        habit_high_streak(conn)
+        return True
     elif choice in "qQ":
         pass
 

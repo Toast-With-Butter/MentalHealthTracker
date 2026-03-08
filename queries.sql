@@ -176,4 +176,16 @@ begin
 	end if;
 end //
 delimiter ;
+
+DELIMITER //
+CREATE FUNCTION avg_hours_of_sleep()
+RETURNS DECIMAL (3,1)
+DETERMINISTIC 
+BEGIN 
+    DECLARE avg_hours DECIMAL(3,1);
+    SELECT ROUND(AVG(hours_slept), 1) into avg_hours
+    FROM daily_entries;        
+    RETURN avg_hours;
+END //
+DELIMITER ;
     
