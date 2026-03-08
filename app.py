@@ -8,6 +8,7 @@ app = Flask(__name__)
 
 DB_NAME = "mental_health_tracker"
 
+
 def clear():
     os.system('cls||clear')
 
@@ -85,7 +86,7 @@ def list_all_habits(conn):
 
 def log_habit(conn):
     cur = conn.cursor()
-    cur.execute("SELECT habit_id, habit_name habit_id FROM habits")
+    cur.execute("SELECT habit_id, habit_name FROM habits")
     rows = cur.fetchall()
     cur.close()
     print("Choose the habit you would like to log:")
@@ -93,9 +94,9 @@ def log_habit(conn):
         print(f" {habit_id}. {habit_name} ")
 
     try:
-        id = int(input("--> "))
+        h_id = int(input("--> "))
         cur = conn.cursor()
-        cur.execute(f"SELECT * FROM habits where habit_id = {id}")
+        cur.execute("SELECT * FROM habits WHERE habit_id = %s", (h_id,))
         rows = cur.fetchall()
         if len(rows) == 0:
             print("Habit not found.")
@@ -104,7 +105,10 @@ def log_habit(conn):
             return
         cur.close()
         cur = conn.cursor()
-        cur.execute(f"SELECT habit_id, entry_date FROM habit_logs where habit_id = {id} and entry_date = (CURDATE())")
+        cur.execute(
+            "SELECT habit_id, entry_date FROM habit_logs WHERE habit_id = %s AND entry_date = CURDATE()",
+            (h_id,)
+        )
         rows = cur.fetchall()
         if len(rows) > 0:
             print("You have already logged this habit today.")
@@ -114,7 +118,7 @@ def log_habit(conn):
 
         sql = "INSERT IGNORE INTO habit_logs (habit_id, completed)" \
               "VALUES (%s, %s)"
-        cur.execute(sql, (id, 1))
+        cur.execute(sql, (h_id, 1))
         conn.commit()
 
         print("Good job on completing your habit. Keep it up!")
@@ -137,6 +141,17 @@ def view_habit_logs(conn):
         print(f" {str(entry_date):<12} {habit_name:<30}")
     input("Press enter to continue.")
 
+def view_alerts(conn):
+    cur = conn.cursor()
+    cur.execute("select entry_date, alert_type, alert_message from alerts")
+    rows = cur.fetchall()
+    cur.close()
+    print(f"{'Date triggered':<16} {'Alert type':<40} {'Alert message':<40}")
+    print("-" * 60)
+    for entry_date, alert_type, alert_message in rows:
+        print(f" {str(entry_date):<16} {alert_type:<40} {alert_message}")
+    input("Press enter to continue.")
+
 def get_connection(db = None):
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
@@ -147,9 +162,22 @@ def get_connection(db = None):
     )
 
 def main():
+   # mode = input("Run mode (web / console): ").strip().lower()
+   # if mode == "web":
+   #     run_web()
+   # elif mode == "console":
+        run_console()
+
+
+def run_web():
     load_dotenv()
     conn = setup_database()
+    app.run(debug=True, use_reloader=False)
+    conn.close()
 
+def run_console():
+    load_dotenv()
+    conn = setup_database()
     is_running = True
     while is_running:
         clear()
@@ -157,8 +185,8 @@ def main():
         choice = input("--> ")
         clear()
         is_running = handle_main_menu_input(choice, conn)
-
     conn.close()
+
 
 def handle_main_menu_input(choice, conn):
     if choice == "1":
@@ -183,6 +211,9 @@ def handle_main_menu_input(choice, conn):
         Statistics_Menu()
         subchoice = input("--> ")
         handle_statistics_menu_input(subchoice)
+        return True
+    elif choice == "8":
+        view_alerts(conn)
         return True
     elif choice in "qQ":
         return False
@@ -211,6 +242,7 @@ def Main_Menu():
           "5. Log daily habit\n",
           "6. View habits log\n",
           "7. View statistics\n",
+          "8. View alerts\n",
           "Q. Quit\n")
     
 def Statistics_Menu():
@@ -381,9 +413,63 @@ def create_functions(conn):
     END
     """
     cur.execute(query)
+
+    cur.execute("drop function if exists get_low_sleep_streak")
+    query = """
+    create function get_low_sleep_streak(p_entry_date DATE)
+    returns int
+    deterministic
+    begin
+        declare streak int default 0;
+    
+        with recursive streak_dates as (
+            select entry_date
+            from daily_entries
+            where entry_date = p_entry_date
+              and hours_slept < 6
+    
+            union all
+    
+            select d.entry_date
+            from daily_entries d
+            join streak_dates sd
+              on d.entry_date = date_sub(sd.entry_date, interval 1 day)
+            where d.hours_slept < 6
+        )
+        select count(*)
+        into streak
+        from streak_dates;
+    
+        return streak;
+    end
+    """
+    cur.execute(query)
     conn.commit()
+
     print("Created functions")
 
+def create_triggers(conn):
+    cur = conn.cursor()
+    cur.execute("drop trigger if exists low_sleep_alert")
+    query = """
+    create trigger low_sleep_alert
+    after update on daily_entries
+    for each row
+    begin
+	declare consecutive_days int default 0;
+	if new.hours_slept < 6 then
+		set consecutive_days = get_low_sleep_streak(new.entry_date);
+		if consecutive_days >= 3 then 
+			insert into alerts(entry_date, alert_type, alert_message)
+            values(new.entry_date, "Low sleep streak", concat(consecutive_days, " days with low sleep"));
+		end if;
+	end if;
+    end
+    """
+    cur.execute(query)
+
+    conn.commit()
+    print("Created triggers")
 
 def setup_database():
     conn = get_connection()
@@ -392,7 +478,8 @@ def setup_database():
     populate_tables(conn)
     create_views(conn)
     create_procedures(conn)
-    create_functions (conn)
+    create_functions(conn)
+    create_triggers(conn)
     return conn
 
 

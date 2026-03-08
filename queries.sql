@@ -131,3 +131,49 @@ WHERE entry_date >= CURDATE() - INTERVAL p_days DAY;
 END //
 
 DELIMITER ;
+
+delimiter //
+create function get_low_sleep_streak(p_entry_date DATE)
+returns int
+deterministic
+begin
+    declare streak int default 0;
+
+    with recursive streak_dates as (
+        select entry_date
+        from daily_entries
+        where entry_date = p_entry_date
+          and hours_slept < 6
+
+        union all
+
+        select d.entry_date
+        from daily_entries d
+        join streak_dates sd
+          on d.entry_date = date_sub(sd.entry_date, interval 1 day)
+        where d.hours_slept < 6
+    )
+    select COUNT(*)
+    into streak
+    from streak_dates;
+
+    return streak;
+end //
+delimiter ;
+
+delimiter //
+create trigger low_sleep_alert
+after update on daily_entries
+for each row
+begin
+	declare consecutive_days int default 0;
+	if new.hours_slept < 6 then
+		set consecutive_days = get_low_sleep_streak(new.entry_date);
+		if consecutive_days >= 3 then 
+			insert into alerts(entry_date, alert_type, alert_message)
+            values(new.entry_date, "Low sleep streak", concat(consecutive_days, " days with low sleep"));
+		end if;
+	end if;
+end //
+delimiter ;
+    
