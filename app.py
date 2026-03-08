@@ -1,4 +1,3 @@
-from flask import Flask, jsonify
 from tabulate import tabulate
 import os
 from dotenv import load_dotenv
@@ -6,8 +5,6 @@ import mysql.connector
 import seed_mental_health_tracker
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-app = Flask(__name__)
 
 DB_NAME = "mental_health_tracker"
 
@@ -203,18 +200,8 @@ def get_connection(db = None):
     )
 
 def main():
-   # mode = input("Run mode (web / console): ").strip().lower()
-   # if mode == "web":
-   #     run_web()
-   # elif mode == "console":
-        run_console()
+    run_console()
 
-
-def run_web():
-    load_dotenv()
-    conn = setup_database()
-    app.run(debug=True, use_reloader=False)
-    conn.close()
 
 def run_console():
     load_dotenv()
