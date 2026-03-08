@@ -180,27 +180,18 @@ def print_avg_sleep(conn):
     input("Press enter to continue.")
     cur.close()
 
-def habit_high_streak(conn):
-    cur = conn.cursor()
-    cur.execute("SELECT habit_id, habit_name FROM habits")
-    rows = cur.fetchall()
-    cur.close()
-    print("Choose the habit you would like to check the streak for:")
-    for habit_id, habit_name in rows:
-        print(f" {habit_id}. {habit_name} ")
-    
-    try:
-        h_id = int(input("--> "))
-        cur = conn.cursor()
-        cur.execute("SELECT get_highest_streak(%s)", (h_id,))
-        result = cur.fetchone()
-        print(f"Your highest streak is: {result[0]}")
-        input("Press enter to continue.")
-    except ValueError:
-        print("You must enter a number.")
-        input("Press enter to continue.")
 
-    cur.close()
+def list_highest_streaks(conn):
+    cur = conn.cursor()
+    cur.execute("select habit_name, habit_id from habits")
+    list = cur.fetchall()
+    print(f"{'Habit name':<30} {'Longest streak'}")
+    for (habit_name, habit_id) in list:
+        cur.execute("select get_highest_streak(%s)", (habit_id,))
+        result = cur.fetchone()
+        print(f" {str(habit_name):<30} {result[0]}")
+    input("Press enter to continue.")
+
 
 def get_connection(db = None):
     return mysql.connector.connect(
@@ -278,9 +269,7 @@ def handle_statistics_menu_input(choice, conn):
         print_avg_sleep(conn)
         return True
     elif choice == "3":
-        pass
-    elif choice == "4":
-        habit_high_streak(conn)
+        list_highest_streaks(conn)
         return True
     elif choice in "qQ":
         pass
@@ -301,10 +290,8 @@ def Main_Menu():
 def Statistics_Menu():
     print("Statistics:\n",
           "1. Your health summary\n",
-          "2. Your average sleep /night\n",
-          "3. Your sleep impact")
-    print("Habits:\n",
-          "4. Your high streaks")
+          "2. Your average sleep per night\n",
+          "3. Your habit high streaks\n")
     print("Q. Go Back!\n")
 
 
@@ -378,7 +365,7 @@ def create_views(conn):
 
     query = """
     create or replace view habit_date_completion as
-    select h.habit_id, h.habit_name, hl.entry_date
+    select h.habit_id, h.habit_name, hl.entry_date, hl.completed
     from habits h  join habit_logs hl
     where h.habit_id = hl.habit_id and hl.completed = true
     order by hl.entry_date asc
@@ -437,18 +424,18 @@ def create_functions(conn):
                 returns int
                 deterministic
             begin
-    	declare \
+    	declare 
             max_streak int default 0;
-            select coalesce(max(streak_length), 0) \
+            select coalesce(max(streak_length), 0) 
             into max_streak
-            from (select count(*) as streak_length \
-                  from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp \
-                        from habit_date_completion \
-                        where habit_id = p_habit_id \
-                          and completed = true) as grouped_days \
+            from (select count(*) as streak_length
+                  from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp 
+                        from habit_date_completion 
+                        where habit_id = p_habit_id 
+                          and completed = true) as grouped_days 
                   group by grp) as streaks;
             return max_streak;
-            end \
+            end 
             """
     cur.execute(query)
     conn.commit()
@@ -479,7 +466,7 @@ def create_functions(conn):
             select entry_date
             from daily_entries
             where entry_date = p_entry_date
-              and hours_slept < 6
+              and hours_slept <= 6
     
             union all
     
@@ -487,7 +474,7 @@ def create_functions(conn):
             from daily_entries d
             join streak_dates sd
               on d.entry_date = date_sub(sd.entry_date, interval 1 day)
-            where d.hours_slept < 6
+            where d.hours_slept <= 6
         )
         select count(*)
         into streak
@@ -506,11 +493,11 @@ def create_triggers(conn):
     cur.execute("drop trigger if exists low_sleep_alert")
     query = """
     create trigger low_sleep_alert
-    after update on daily_entries
+    after insert on daily_entries
     for each row
     begin
 	declare consecutive_days int default 0;
-	if new.hours_slept < 6 then
+	if new.hours_slept <= 6 then
 		set consecutive_days = get_low_sleep_streak(new.entry_date);
 		if consecutive_days >= 3 then 
 			insert into alerts(entry_date, alert_type, alert_message)
