@@ -152,6 +152,20 @@ def view_alerts(conn):
         print(f" {str(entry_date):<16} {alert_type:<40} {alert_message}")
     input("Press enter to continue.")
 
+
+
+def list_highest_streaks(conn):
+    cur = conn.cursor()
+    cur.execute("select habit_name, habit_id from habits")
+    list = cur.fetchall()
+    print(f"{'Habit name':<30} {'Longest streak'}")
+    for (habit_name, habit_id) in list:
+        cur.execute("select get_highest_streak(%s)", (habit_id,))
+        result = cur.fetchone()
+        print(f" {str(habit_name):<30} {result[0]}")
+    input("Press enter to continue.")
+
+
 def get_connection(db = None):
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
@@ -210,7 +224,7 @@ def handle_main_menu_input(choice, conn):
     elif choice == "7":
         Statistics_Menu()
         subchoice = input("--> ")
-        handle_statistics_menu_input(subchoice)
+        handle_statistics_menu_input(subchoice, conn)
         return True
     elif choice == "8":
         view_alerts(conn)
@@ -220,15 +234,13 @@ def handle_main_menu_input(choice, conn):
     else:
         return True
 
-def handle_statistics_menu_input(choice):
+def handle_statistics_menu_input(choice, conn):
     if choice == "1":
         pass
     elif choice == "2":
         pass
     elif choice == "3":
-        pass
-    elif choice == "4":
-        pass
+        list_highest_streaks(conn)
     elif choice in "qQ":
         pass
 
@@ -248,10 +260,9 @@ def Main_Menu():
 def Statistics_Menu():
     print("Statistics:\n",
           "1. Your health summary\n",
-          "2. Your average sleep /night\n",
-          "3. Your sleep impact")
+          "2. Your average sleep /night\n")
     print("Habits:\n",
-          "4. Your high streaks")
+          "3. Your high streaks")
     print("Q. Go Back!\n")
 
 
@@ -325,7 +336,7 @@ def create_views(conn):
 
     query = """
     create or replace view habit_date_completion as
-    select h.habit_id, h.habit_name, hl.entry_date
+    select h.habit_id, h.habit_name, hl.entry_date, hl.completed
     from habits h  join habit_logs hl
     where h.habit_id = hl.habit_id and hl.completed = true
     order by hl.entry_date asc
@@ -384,18 +395,18 @@ def create_functions(conn):
                 returns int
                 deterministic
             begin
-    	declare \
+    	declare 
             max_streak int default 0;
-            select coalesce(max(streak_length), 0) \
+            select coalesce(max(streak_length), 0) 
             into max_streak
-            from (select count(*) as streak_length \
-                  from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp \
-                        from habit_date_completion \
-                        where habit_id = p_habit_id \
-                          and completed = true) as grouped_days \
+            from (select count(*) as streak_length
+                  from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp 
+                        from habit_date_completion 
+                        where habit_id = p_habit_id 
+                          and completed = true) as grouped_days 
                   group by grp) as streaks;
             return max_streak;
-            end \
+            end 
             """
     cur.execute(query)
     conn.commit()
