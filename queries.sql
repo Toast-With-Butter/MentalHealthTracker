@@ -153,7 +153,7 @@ begin
           on d.entry_date = date_sub(sd.entry_date, interval 1 day)
         where d.hours_slept < 6
     )
-    select COUNT(*)
+    select count(*)
     into streak
     from streak_dates;
 
@@ -161,9 +161,13 @@ begin
 end //
 delimiter ;
 
+show triggers;
+
+
+
 delimiter //
 create trigger low_sleep_alert
-after update on daily_entries
+after insert on daily_entries
 for each row
 begin
 	declare consecutive_days int default 0;

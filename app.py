@@ -426,7 +426,7 @@ def create_functions(conn):
             select entry_date
             from daily_entries
             where entry_date = p_entry_date
-              and hours_slept < 6
+              and hours_slept <= 6
     
             union all
     
@@ -434,7 +434,7 @@ def create_functions(conn):
             from daily_entries d
             join streak_dates sd
               on d.entry_date = date_sub(sd.entry_date, interval 1 day)
-            where d.hours_slept < 6
+            where d.hours_slept <= 6
         )
         select count(*)
         into streak
@@ -453,11 +453,11 @@ def create_triggers(conn):
     cur.execute("drop trigger if exists low_sleep_alert")
     query = """
     create trigger low_sleep_alert
-    after update on daily_entries
+    after insert on daily_entries
     for each row
     begin
 	declare consecutive_days int default 0;
-	if new.hours_slept < 6 then
+	if new.hours_slept <= 6 then
 		set consecutive_days = get_low_sleep_streak(new.entry_date);
 		if consecutive_days >= 3 then 
 			insert into alerts(entry_date, alert_type, alert_message)
