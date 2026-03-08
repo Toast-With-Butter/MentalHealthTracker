@@ -8,30 +8,8 @@ app = Flask(__name__)
 
 DB_NAME = "mental_health_tracker"
 
-@app.route('/dailyentries')
-def get_daily_entries():
-    conn = get_connection()
-    init_db(conn, DB_NAME)
-
-    cur = conn.cursor()
-    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    result = []
-
-    for entry_date, mood_level, stress_level, energy_level,hours_slept, notes in rows:
-        result.append({
-            "entry_date": entry_date,
-            "mood_level": mood_level,
-            "stress_level": stress_level,
-            "energy_level": energy_level,
-            "hours_slept": hours_slept,
-            "notes": notes
-        })
-
-    return jsonify(result)
+def clear():
+    os.system('cls||clear')
 
 def enter_health_data(conn):
     cur = conn.cursor()
@@ -41,9 +19,8 @@ def enter_health_data(conn):
     rows = cur.fetchall()
     if len(rows) > 0:
         print("Daily entry already recorded")
-        cur.close()
-        conn.close()
         input("Press enter to continue.")
+        cur.close()
         return
     try:
         sleep = int(input("How many hours did you sleep?\n->"))
@@ -59,19 +36,106 @@ def enter_health_data(conn):
 
         print("Data entered successfully!")
         input("Press enter to continue.")
-
     except ValueError:
         print("You must enter a number.")
-
+        input("Press enter to continue.")
     finally:
         cur.close()
-        conn.close()
 
+def view_all_health_data(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries")
+    rows = cur.fetchall()
+    cur.close()
+    print(f"{'Date':<12} {'Mood':<6} {'Stress':<8} {'Energy':<8} {'Sleep':<6} {'Notes'}")
+    print("-" * 60)
+    for entry_date, mood_level, stress_level, energy_level, hours_slept, notes in rows:
+        print(f"{str(entry_date):<12} {mood_level:<6} {stress_level:<8} {energy_level:<8} {hours_slept:<6} {notes}")
+    input("Press enter to continue.")
 
-@app.route('/')
-def hello_world():  # put application's code here
-    setup_database()
-    return 'Hello World!!'
+def enter_new_habit(conn):
+    cur = conn.cursor()
+    try:
+        h_name = str(input("What is your habit called?\n->"))
+        notes = str(input("Any notes:\n->"))
+
+        sql = "INSERT IGNORE INTO habits (habit_name, notes)" \
+        "VALUES (%s, %s)"
+        cur.execute(sql,(h_name, notes))
+        conn.commit()
+
+        print("New habit has been entered successfully!")
+        input("Press enter to continue.")
+    except ValueError:
+        print("Wrong input data. Please try again.")
+        input("Press enter to continue.")
+    finally:
+        cur.close()
+
+def list_all_habits(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT habit_name, entry_date, notes FROM habits")
+    rows = cur.fetchall()
+    cur.close()
+    print(f"{'Date created':<12} {'Habit name':<30} {'Notes'}")
+    print("-" * 60)
+    for habit_name, entry_date, notes in rows:
+        print(f" {str(entry_date):<12} {habit_name:<30} {notes}")
+    input("Press enter to continue.")
+
+def log_habit(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT habit_id, habit_name habit_id FROM habits")
+    rows = cur.fetchall()
+    cur.close()
+    print("Choose the habit you would like to log:")
+    for habit_id, habit_name in rows:
+        print(f" {habit_id}. {habit_name} ")
+
+    try:
+        id = int(input("--> "))
+        cur = conn.cursor()
+        cur.execute(f"SELECT * FROM habits where habit_id = {id}")
+        rows = cur.fetchall()
+        if len(rows) == 0:
+            print("Habit not found.")
+            input("Press enter to continue.")
+            cur.close()
+            return
+        cur.close()
+        cur = conn.cursor()
+        cur.execute(f"SELECT habit_id, entry_date FROM habit_logs where habit_id = {id} and entry_date = (CURDATE())")
+        rows = cur.fetchall()
+        if len(rows) > 0:
+            print("You have already logged this habit today.")
+            input("Press enter to continue.")
+            cur.close()
+            return
+
+        sql = "INSERT IGNORE INTO habit_logs (habit_id, completed)" \
+              "VALUES (%s, %s)"
+        cur.execute(sql, (id, 1))
+        conn.commit()
+
+        print("Good job on completing your habit. Keep it up!")
+        print("Habit logged successfully.")
+        input("Press enter to continue.")
+    except ValueError:
+        print("You must enter a number.")
+        input("Press enter to continue.")
+    finally:
+        cur.close()
+
+def view_habit_logs(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT entry_date, habit_name FROM habit_date_completion")
+    rows = cur.fetchall()
+    cur.close()
+    print(f"{'Date logged':<12} {'Habit name':<30} ")
+    print("-" * 60)
+    for entry_date, habit_name in rows:
+        print(f" {str(entry_date):<12} {habit_name:<30}")
+    input("Press enter to continue.")
 
 def get_connection(db = None):
     return mysql.connector.connect(
@@ -88,8 +152,10 @@ def main():
 
     is_running = True
     while is_running:
+        clear()
         Main_Menu()
         choice = input("--> ")
+        clear()
         is_running = handle_main_menu_input(choice, conn)
 
     conn.close()
@@ -99,14 +165,19 @@ def handle_main_menu_input(choice, conn):
         enter_health_data(conn)
         return True
     elif choice == "2":
+        view_all_health_data(conn)
         return True
     elif choice == "3":
+        enter_new_habit(conn)
         return True
     elif choice == "4":
+        list_all_habits(conn)
         return True
     elif choice == "5":
+        log_habit(conn)
         return True
     elif choice == "6":
+        view_habit_logs(conn)
         return True
     elif choice == "7":
         Statistics_Menu()
@@ -178,7 +249,7 @@ def init_schema(conn, db_name: str) -> None:
     CREATE TABLE IF NOT EXISTS habit_logs(
 	habit_log_id INT AUTO_INCREMENT PRIMARY KEY, 
     habit_id INT NOT NULL,
-    entry_date DATE NOT NULL,
+    entry_date DATE NOT NULL DEFAULT (CURDATE()),
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (habit_id, entry_date),
     FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
@@ -217,39 +288,114 @@ def populate_tables(conn):
     seed_mental_health_tracker.insert_alerts(conn)
     print("Populated tables")
 
+def create_views(conn):
+    cur = conn.cursor()
+
+    query = """
+    create or replace view habit_date_completion as
+    select h.habit_id, h.habit_name, hl.entry_date
+    from habits h  join habit_logs hl
+    where h.habit_id = hl.habit_id and hl.completed = true
+    order by hl.entry_date asc
+    """
+    cur.execute(query)
+    cur.close()
+
 def create_procedures(conn):
-    pass
+    cur = conn.cursor()
+    cur.execute("drop procedure if exists get_habit_logs_for_habit")
+    conn.commit()
+    query = """
+    create procedure get_habit_logs_for_habit(in p_habit_id int)
+    begin
+	select h.habit_name, hl.entry_date, hl.completed
+    from habits h
+    join habit_logs hl on hl.habit_id = h.habit_id
+    where hl.habit_id = p_habit_id
+    order by entry_date;
+    end 
+    """
+    cur.execute(query)
+    conn.commit()
+
+    cur.execute("drop procedure if exists summary")
+    conn.commit()
+    query = """
+    CREATE PROCEDURE summary (IN p_days INT)
+    BEGIN
+    SELECT
+    COUNT(*) AS nr_of_entries,
+    ROUND(AVG(hours_slept), 1) AS avg_sleep,
+    ROUND(AVG(mood_level), 1) AS avg_mood,
+    ROUND(AVG(stress_level), 1) AS avg_stress,
+    ROUND(AVG(energy_level), 1) AS avg_energy,
+    (
+        SELECT COUNT(*)
+        FROM habit_date_completion
+        WHERE entry_date >= CURDATE() - INTERVAL p_days DAY
+    ) AS total_habits_logged
+    FROM daily_entries
+    WHERE entry_date >= CURDATE() - INTERVAL p_days DAY;
+    END
+    """
+    cur.execute(query)
+    conn.commit()
+    cur.close()
+
+    print("Created procedures")
 
 def create_functions(conn):
-    pass
+    cur = conn.cursor()
+    cur.execute("drop function if exists get_highest_streak")
+    query = """
+            create function get_highest_streak(p_habit_id int)
+                returns int
+                deterministic
+            begin
+    	declare \
+            max_streak int default 0;
+            select coalesce(max(streak_length), 0) \
+            into max_streak
+            from (select count(*) as streak_length \
+                  from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp \
+                        from habit_date_completion \
+                        where habit_id = p_habit_id \
+                          and completed = true) as grouped_days \
+                  group by grp) as streaks;
+            return max_streak;
+            end \
+            """
+    cur.execute(query)
+    conn.commit()
 
-def run_db():
-    pass
+    cur.execute("drop function if exists avg_hours_of_sleep")
+    query = """
+    CREATE FUNCTION avg_hours_of_sleep()
+    RETURNS DECIMAL (3,1)
+    DETERMINISTIC 
+    BEGIN 
+    DECLARE avg_hours DECIMAL(3,1);
+    SELECT ROUND(AVG(hours_slept), 1) into avg_hours
+    FROM daily_entries;        
+    RETURN avg_hours;
+    END
+    """
+    cur.execute(query)
+    conn.commit()
+    print("Created functions")
+
 
 def setup_database():
     conn = get_connection()
     init_db(conn, DB_NAME)
     init_schema(conn, DB_NAME)
     populate_tables(conn)
+    create_views(conn)
     create_procedures(conn)
     create_functions (conn)
     return conn
 
-def get_daily_entries():
-    conn = get_connection(DB_NAME)
-    cur = conn.cursor()
-    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries WHERE entry_date = (CURDATE())")
-    rows = cur.fetchall()
-    cur.close()
-    print("Fetched rows:", len(rows))
-    for entry_date, mood_level, stress_level, energy_level, hours_slept, notes in rows:
-        print(f"Date: {entry_date}")
-        print(f"Mood: {mood_level}")
-        print(f"Stress: {stress_level}")
-        print(f"Energy: {energy_level}")
-        print(f"Hours Slept: {hours_slept}")
-        print(f"Notes: {notes}")
-        print("-" * 40)
+
 
 if __name__ == '__main__':
     main()
