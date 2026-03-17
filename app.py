@@ -7,16 +7,16 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 DB_NAME = "mental_health_tracker"
-
+default_user_id = 1
 
 def clear():
     os.system('cls||clear')
 
-def enter_health_data(conn):
+def enter_health_data(conn, u_id):
     cur = conn.cursor()
-    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes"
+    cur.execute("SELECT user_id, entry_date, mood_level, stress_level, energy_level, hours_slept, notes"
                 " FROM daily_entries"
-                " WHERE entry_date = (CURDATE())")
+                " WHERE entry_date = (CURDATE()) AND user_id = %s", (u_id,))
     rows = cur.fetchall()
     if len(rows) > 0:
         print("Daily entry already recorded")
@@ -30,9 +30,9 @@ def enter_health_data(conn):
         energy = int(input("How is your energy level on a scale from 1-10?\n->"))
         notes = str(input("Any notes:\n->"))
 
-        sql = "INSERT IGNORE INTO daily_entries (hours_slept, mood_level, stress_level, energy_level, notes)" \
-        "VALUES (%s, %s, %s, %s, %s)"
-        cur.execute(sql,(sleep, mood, stress, energy, notes))
+        sql = "INSERT IGNORE INTO daily_entries (user_id, hours_slept, mood_level, stress_level, energy_level, notes)" \
+        "VALUES (%s, %s, %s, %s, %s, %s)"
+        cur.execute(sql,(u_id, sleep, mood, stress, energy, notes))
         conn.commit()
 
         print("Data entered successfully!")
@@ -43,9 +43,9 @@ def enter_health_data(conn):
     finally:
         cur.close()
 
-def view_all_health_data(conn):
+def view_all_health_data(conn, u_id):
     cur = conn.cursor()
-    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries")
+    cur.execute("SELECT entry_date, mood_level, stress_level, energy_level, hours_slept, notes FROM daily_entries WHERE user_id = %s", (u_id,))
     rows = cur.fetchall()
     cur.close()
     print(f"{'Date':<12} {'Mood':<6} {'Stress':<8} {'Energy':<8} {'Sleep':<6} {'Notes'}")
@@ -54,15 +54,15 @@ def view_all_health_data(conn):
         print(f"{str(entry_date):<12} {mood_level:<6} {stress_level:<8} {energy_level:<8} {hours_slept:<6} {notes}")
     input("Press enter to continue.")
 
-def enter_new_habit(conn):
+def enter_new_habit(conn, u_id):
     cur = conn.cursor()
     try:
         h_name = str(input("What is your habit called?\n->"))
         notes = str(input("Any notes:\n->"))
 
-        sql = "INSERT IGNORE INTO habits (habit_name, notes)" \
-        "VALUES (%s, %s)"
-        cur.execute(sql,(h_name, notes))
+        sql = "INSERT IGNORE INTO habits (user_id, habit_name, notes)" \
+        "VALUES (%s,%s, %s)"
+        cur.execute(sql,(u_id, h_name, notes))
         conn.commit()
 
         print("New habit has been entered successfully!")
@@ -73,9 +73,9 @@ def enter_new_habit(conn):
     finally:
         cur.close()
 
-def list_all_habits(conn):
+def list_all_habits(conn, u_id):
     cur = conn.cursor()
-    cur.execute("SELECT habit_name, entry_date, notes FROM habits")
+    cur.execute("SELECT habit_name, entry_date, notes FROM habits WHERE user_id = %s", (u_id,))
     rows = cur.fetchall()
     cur.close()
     print(f"{'Date created':<12} {'Habit name':<30} {'Notes'}")
@@ -84,9 +84,9 @@ def list_all_habits(conn):
         print(f" {str(entry_date):<12} {habit_name:<30} {notes}")
     input("Press enter to continue.")
 
-def log_habit(conn):
+def log_habit(conn, u_id):
     cur = conn.cursor()
-    cur.execute("SELECT habit_id, habit_name FROM habits")
+    cur.execute("SELECT habit_id, habit_name FROM habits WHERE user_id = %s", (u_id,))
     rows = cur.fetchall()
     cur.close()
     print("Choose the habit you would like to log:")
@@ -96,7 +96,7 @@ def log_habit(conn):
     try:
         h_id = int(input("--> "))
         cur = conn.cursor()
-        cur.execute("SELECT * FROM habits WHERE habit_id = %s", (h_id,))
+        cur.execute("SELECT * FROM habits WHERE habit_id = %s AND user_id = %s", (h_id, u_id,))
         rows = cur.fetchall()
         if len(rows) == 0:
             print("Habit not found.")
@@ -106,8 +106,8 @@ def log_habit(conn):
         cur.close()
         cur = conn.cursor()
         cur.execute(
-            "SELECT habit_id, entry_date FROM habit_logs WHERE habit_id = %s AND entry_date = CURDATE()",
-            (h_id,)
+            "SELECT habit_id, entry_date FROM habit_logs WHERE habit_id = %s AND user_id = %s AND entry_date = CURDATE()",
+            (h_id,u_id, )
         )
         rows = cur.fetchall()
         if len(rows) > 0:
@@ -116,9 +116,9 @@ def log_habit(conn):
             cur.close()
             return
 
-        sql = "INSERT IGNORE INTO habit_logs (habit_id, completed)" \
-              "VALUES (%s, %s)"
-        cur.execute(sql, (h_id, 1))
+        sql = "INSERT IGNORE INTO habit_logs (user_id, habit_id, completed)" \
+              "VALUES (%s, %s, %s)"
+        cur.execute(sql, (u_id, h_id, 1))
         conn.commit()
 
         print("Good job on completing your habit. Keep it up!")
@@ -130,9 +130,9 @@ def log_habit(conn):
     finally:
         cur.close()
 
-def view_habit_logs(conn):
+def view_habit_logs(conn, u_id):
     cur = conn.cursor()
-    cur.execute("SELECT entry_date, habit_name FROM habit_date_completion")
+    cur.execute("SELECT entry_date, habit_name FROM habit_date_completion  WHERE user_id = %s", (u_id,))
     rows = cur.fetchall()
     cur.close()
     print(f"{'Date logged':<12} {'Habit name':<30} ")
@@ -141,9 +141,9 @@ def view_habit_logs(conn):
         print(f" {str(entry_date):<12} {habit_name:<30}")
     input("Press enter to continue.")
 
-def view_alerts(conn):
+def view_alerts(conn, u_id):
     cur = conn.cursor()
-    cur.execute("select entry_date, alert_type, alert_message from alerts")
+    cur.execute("select entry_date, alert_type, alert_message from alerts WHERE user_id = %s", (u_id,))
     rows = cur.fetchall()
     cur.close()
     print(f"{'Date triggered':<16} {'Alert type':<40} {'Alert message':<40}")
@@ -152,12 +152,12 @@ def view_alerts(conn):
         print(f" {str(entry_date):<16} {alert_type:<40} {alert_message}")
     input("Press enter to continue.")
 
-def print_summary(conn):
+def print_summary(conn, u_id):
     cur = conn.cursor()
 
     days = int(input("How many days do you want to summarize?\n->"))
     print(f"You chose an interval of {days}.")
-    cur.callproc("summary", [days])
+    cur.callproc("summary", [days, u_id])
 
     for result in cur.stored_results():
         columns = [col[0] for col in result.description]
@@ -168,9 +168,9 @@ def print_summary(conn):
     input("Press enter to continue.")
     cur.close()
 
-def print_avg_sleep(conn):
+def print_avg_sleep(conn, u_id):
     cur = conn.cursor()
-    cur.execute("SELECT avg_hours_of_sleep();")
+    cur.execute("SELECT avg_hours_of_sleep(%s)", (u_id,))
     hours = cur.fetchone()
     print(f"Average hours of sleep: {hours[0]:.1f}")
 
@@ -178,16 +178,49 @@ def print_avg_sleep(conn):
     cur.close()
 
 
-def list_highest_streaks(conn):
+def list_highest_streaks(conn, u_id):
     cur = conn.cursor()
-    cur.execute("select habit_name, habit_id from habits")
+    cur.execute("select user_id, habit_name, habit_id from habits where user_id = %s", (u_id,))
     list = cur.fetchall()
     print(f"{'Habit name':<30} {'Longest streak'}")
-    for (habit_name, habit_id) in list:
-        cur.execute("select get_highest_streak(%s)", (habit_id,))
+    for (user_id, habit_name, habit_id) in list:
+        cur.execute("select get_highest_streak(%s, %s)", (habit_id,u_id))
         result = cur.fetchone()
         print(f" {str(habit_name):<30} {result[0]}")
     input("Press enter to continue.")
+
+def change_user(conn, u_id):
+    print("Current user:", u_id)
+    print("Default user id: 1")
+    new_id = int(input("Please enter a new user ID: "))
+    cur = conn.cursor()
+    cur.execute("select user_id, user_name, user_email from users where user_id = %s", (new_id,))
+    rows = cur.fetchall()
+    if len(rows) > 0:
+        print("User found!")
+        for user_id, user_name, user_email in rows:
+            print(f"Welcome, {str(user_name)}")
+        return new_id
+    else:
+        try:
+            u_name = str(input("Enter your name: \n->"))
+            u_email = str(input("Enter your email: \n->"))
+
+            sql = "INSERT IGNORE INTO users (user_id, user_name, user_email)" \
+                  "VALUES (%s, %s, %s)"
+            cur.execute(sql, (new_id, u_name, u_email))
+            conn.commit()
+
+            print("New user added successfully.")
+            print(f"Welcome, {str(u_name)}")
+            input("Press enter to continue.")
+            cur.close()
+            return new_id
+        except ValueError:
+            print("Invalid input.")
+            input("Press enter to continue.")
+            cur.close()
+            return u_id
 
 
 def get_connection(db = None):
@@ -207,56 +240,60 @@ def run_console():
     load_dotenv()
     conn = setup_database()
     is_running = True
+    u_id = default_user_id
     while is_running:
         clear()
         Main_Menu()
         choice = input("--> ")
         clear()
-        is_running = handle_main_menu_input(choice, conn)
+        (is_running, u_id) = handle_main_menu_input(choice, conn, u_id)
     conn.close()
 
 
-def handle_main_menu_input(choice, conn):
-    if choice == "1":
-        enter_health_data(conn)
-        return True
+def handle_main_menu_input(choice, conn, u_id):
+    if choice == "0":
+        u_id = change_user(conn, u_id)
+        return (True, u_id)
+    elif choice == "1":
+        enter_health_data(conn, u_id)
+        return (True, u_id)
     elif choice == "2":
-        view_all_health_data(conn)
-        return True
+        view_all_health_data(conn, u_id)
+        return (True, u_id)
     elif choice == "3":
-        enter_new_habit(conn)
-        return True
+        enter_new_habit(conn, u_id)
+        return (True, u_id)
     elif choice == "4":
-        list_all_habits(conn)
-        return True
+        list_all_habits(conn, u_id)
+        return (True, u_id)
     elif choice == "5":
-        log_habit(conn)
-        return True
+        log_habit(conn, u_id)
+        return (True, u_id)
     elif choice == "6":
-        view_habit_logs(conn)
-        return True
+        view_habit_logs(conn, u_id)
+        return (True, u_id)
     elif choice == "7":
         Statistics_Menu()
         subchoice = input("--> ")
-        handle_statistics_menu_input(subchoice, conn)
-        return True
+        handle_statistics_menu_input(subchoice, conn, u_id)
+        return (True, u_id)
     elif choice == "8":
-        view_alerts(conn)
-        return True
+        view_alerts(conn, u_id)
+        return (True, u_id)
     elif choice in "qQ":
-        return False
+        return (False, u_id)
     else:
-        return True
+        return (True, u_id)
 
-def handle_statistics_menu_input(choice, conn):
+def handle_statistics_menu_input(choice, conn, u_id):
     if choice == "1":
-        print_summary(conn)
+        print_summary(conn, u_id)
         return True
     elif choice == "2":
-        print_avg_sleep(conn)
+        print_avg_sleep(conn, u_id)
         return True
     elif choice == "3":
-        list_highest_streaks(conn)
+        list_highest_streaks(conn, u_id)
         return True
     elif choice in "qQ":
         pass
@@ -264,6 +301,7 @@ def handle_statistics_menu_input(choice, conn):
 
 def Main_Menu():
     print("Main Menu:\n",
+          "0. Change user\n",
           "1. Enter daily health data\n",
           "2. View all health data\n",
           "3. Create new habit\n",
@@ -359,6 +397,9 @@ def init_schema(conn, db_name: str) -> None:
     print("Created tables")
 
 def populate_tables(conn):
+    cur = conn.cursor()
+    cur.execute("insert ignore into users values (1, 'test_name', 'test_email@test.com')")
+    cur.close()
     seed_mental_health_tracker.insert_habits(conn)
     seed_mental_health_tracker.insert_daily_entries(conn)
     seed_mental_health_tracker.insert_habit_logs(conn)
@@ -370,7 +411,7 @@ def create_views(conn):
 
     query = """
     create or replace view habit_date_completion as
-    select h.habit_id, h.habit_name, hl.entry_date, hl.completed
+    select h.user_id, h.habit_id, h.habit_name, hl.entry_date, hl.completed
     from habits h  join habit_logs hl
     where h.habit_id = hl.habit_id and hl.completed = true
     order by hl.entry_date asc
@@ -383,12 +424,12 @@ def create_procedures(conn):
     cur.execute("drop procedure if exists get_habit_logs_for_habit")
     conn.commit()
     query = """
-    create procedure get_habit_logs_for_habit(in p_habit_id int)
+    create procedure get_habit_logs_for_habit(in p_habit_id int, IN p_user_id INT)
     begin
 	select h.habit_name, hl.entry_date, hl.completed
     from habits h
     join habit_logs hl on hl.habit_id = h.habit_id
-    where hl.habit_id = p_habit_id
+    where hl.habit_id = p_habit_id and p_user_id = h.user_id
     order by entry_date;
     end 
     """
@@ -398,7 +439,7 @@ def create_procedures(conn):
     cur.execute("drop procedure if exists summary")
     conn.commit()
     query = """
-    CREATE PROCEDURE summary (IN p_days INT)
+    CREATE PROCEDURE summary (IN p_days INT, IN p_user_id INT)
     BEGIN
     SELECT
     COUNT(*) AS nr_of_entries,
@@ -409,10 +450,10 @@ def create_procedures(conn):
     (
         SELECT COUNT(*)
         FROM habit_date_completion
-        WHERE entry_date >= CURDATE() - INTERVAL p_days DAY
+        WHERE entry_date >= CURDATE() - INTERVAL p_days DAY AND user_id = p_user_id
     ) AS total_habits_logged
     FROM daily_entries
-    WHERE entry_date >= CURDATE() - INTERVAL p_days DAY;
+    WHERE entry_date >= CURDATE() - INTERVAL p_days DAY AND user_id = p_user_id;
     END
     """
     cur.execute(query)
@@ -425,7 +466,7 @@ def create_functions(conn):
     cur = conn.cursor()
     cur.execute("drop function if exists get_highest_streak")
     query = """
-            create function get_highest_streak(p_habit_id int)
+            create function get_highest_streak(p_habit_id int, p_user_id int)
                 returns int
                 deterministic
             begin
@@ -436,7 +477,7 @@ def create_functions(conn):
             from (select count(*) as streak_length
                   from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp 
                         from habit_date_completion 
-                        where habit_id = p_habit_id 
+                        where habit_id = p_habit_id and user_id = p_user_id
                           and completed = true) as grouped_days 
                   group by grp) as streaks;
             return max_streak;
@@ -447,13 +488,14 @@ def create_functions(conn):
 
     cur.execute("drop function if exists avg_hours_of_sleep")
     query = """
-    CREATE FUNCTION avg_hours_of_sleep()
+    CREATE FUNCTION avg_hours_of_sleep(p_user_id int)
     RETURNS DECIMAL (3,1)
     DETERMINISTIC 
     BEGIN 
     DECLARE avg_hours DECIMAL(3,1);
     SELECT ROUND(AVG(hours_slept), 1) into avg_hours
-    FROM daily_entries;        
+    FROM daily_entries
+    WHERE user_id = p_user_id;        
     RETURN avg_hours;
     END
     """
@@ -461,7 +503,7 @@ def create_functions(conn):
 
     cur.execute("drop function if exists get_low_sleep_streak")
     query = """
-    create function get_low_sleep_streak(p_entry_date DATE)
+    create function get_low_sleep_streak(p_entry_date DATE, p_user_id INT)
     returns int
     deterministic
     begin
@@ -470,7 +512,7 @@ def create_functions(conn):
         with recursive streak_dates as (
             select entry_date
             from daily_entries
-            where entry_date = p_entry_date
+            where entry_date = p_entry_date and user_id = p_user_id
               and hours_slept <= 6
     
             union all
@@ -479,7 +521,7 @@ def create_functions(conn):
             from daily_entries d
             join streak_dates sd
               on d.entry_date = date_sub(sd.entry_date, interval 1 day)
-            where d.hours_slept <= 6
+            where d.hours_slept <= 6  and user_id = p_user_id
         )
         select count(*)
         into streak
@@ -503,10 +545,10 @@ def create_triggers(conn):
     begin
 	declare consecutive_days int default 0;
 	if new.hours_slept <= 6 then
-		set consecutive_days = get_low_sleep_streak(new.entry_date);
+		set consecutive_days = get_low_sleep_streak(new.entry_date, new.user_id);
 		if consecutive_days >= 3 then 
-			insert into alerts(entry_date, alert_type, alert_message)
-            values(new.entry_date, "Low sleep streak", concat(consecutive_days, " days with low sleep"));
+			insert into alerts(user_id, entry_date, alert_type, alert_message)
+            values(new.user_id, new.entry_date, "Low sleep streak", concat(consecutive_days, " days with low sleep"));
 		end if;
 	end if;
     end

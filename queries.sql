@@ -10,6 +10,8 @@ CREATE TABLE habits(
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     );
 
+
+
 create table users(
 	user_id int auto_increment primary key,
     user_name VARCHAR(255) not null,
@@ -17,7 +19,7 @@ create table users(
     );
     
 describe daily_entries;
-insert into users values (0, 'test_name', 'test_email@test.com');
+insert into users values (1, 'test_name', 'test_email@test.com');
 select * from users;
 CREATE TABLE habit_logs(
 	user_id INT NOT NULL,
@@ -53,55 +55,29 @@ CREATE TABLE IF NOT EXISTS alerts(
 );
 
 
-insert into habits (habit_name, entry_date, notes)
-value
-("2 km run", "2026-03-01", "A run in the forest"),
-("Crochet", "2026-03-01", "Making a sweater"),
-("Reading", "2026-03-02", "Just one more chapter!");
-
-insert into habit_logs(habit_id, entry_date, completed)
-values
-(1, "2026-03-01", true),
-(1, "2026-03-02", true),
-(1, "2026-03-03", true),
-(1, "2026-03-04", true),
-(1, "2026-03-05", true),
-(1, "2026-03-06", true),
-(1, "2026-03-07", true),
-(1, "2026-03-08", true),
-(2, "2026-03-03", true),
-(2, "2026-03-04", true),
-(2, "2026-03-05", true),
-(2, "2026-03-07", true),
-(3, "2026-03-01", true),
-(3, "2026-03-04", true),
-(3, "2026-03-05", true),
-(3, "2026-03-08", true);
-
-create or replace view habit_date_completion as 
-select h.habit_id, h.habit_name, hl.entry_date, hl.completed
-from habits h 
-join habit_logs hl
+create or replace view habit_date_completion as
+select h.user_id, h.habit_id, h.habit_name, hl.entry_date, hl.completed
+from habits h  join habit_logs hl
 where h.habit_id = hl.habit_id and hl.completed = true
-order by hl.entry_date asc;
+order by hl.entry_date asc
 
 delimiter //
-create function get_highest_streak(p_habit_id int)
-returns int 
-deterministic 
-begin
-	declare max_streak int default 0;
-    select coalesce(max(streak_length), 0)  into max_streak
-    from (
-		select count(*) as streak_length
-        from(
-			select entry_date, date_sub(entry_date,	interval row_number() over (order by entry_date) day) as grp
-			from habit_date_completion
-			where habit_id = p_habit_id	and completed = true) as grouped_days
-		group by grp
-	) as streaks;
-    return max_streak;
-end //
+create function get_highest_streak(p_habit_id int, p_user_id int)
+        returns int
+        deterministic
+        begin
+    	declare
+            max_streak int default 0;
+            select coalesce(max(streak_length), 0)
+            into max_streak
+            from (select count(*) as streak_length
+                  from (select entry_date, date_sub(entry_date, interval row_number() over (order by entry_date) day) as grp
+                        from habit_date_completion
+                        where habit_id = p_habit_id and user_id = p_user_id
+                          and completed = true) as grouped_days
+                  group by grp) as streaks;
+            return max_streak;
+        end  //
 delimiter ;
 
 delimiter //
@@ -115,100 +91,84 @@ begin
 end //
 delimiter ;
 
-create or replace view average_moods as
-SELECT 
-	entry_date,
-    AVG(hours_slept) AS avg_sleep,
-    AVG(mood_level) AS avg_mood,
-    AVG(stress_level) AS avg_stress,
-    AVG(energy_level) AS avg_energy
-FROM daily_entries
-group by entry_date;
-
 
 DELIMITER //
 
-CREATE PROCEDURE summary (IN p_days INT)
+CREATE PROCEDURE summary (IN p_days INT, IN p_user_id INT)
 BEGIN
-
 SELECT
-    COUNT(*) AS nr_of_entries,
-    ROUND(AVG(hours_slept), 1) AS avg_sleep,
-    ROUND(AVG(mood_level), 1) AS avg_mood,
-    ROUND(AVG(stress_level), 1) AS avg_stress,
-    ROUND(AVG(energy_level), 1) AS avg_energy,
-
-    (
-        SELECT COUNT(*)
-        FROM habit_date_completion
-        WHERE entry_date >= CURDATE() - INTERVAL p_days DAY
-    ) AS total_habits_logged
-
+COUNT(*) AS nr_of_entries,
+ROUND(AVG(hours_slept), 1) AS avg_sleep,
+ROUND(AVG(mood_level), 1) AS avg_mood,
+ROUND(AVG(stress_level), 1) AS avg_stress,
+ROUND(AVG(energy_level), 1) AS avg_energy,
+(
+    SELECT COUNT(*)
+    FROM habit_date_completion
+    WHERE entry_date >= CURDATE() - INTERVAL p_days DAY AND user_id = p_user_id
+) AS total_habits_logged
 FROM daily_entries
-WHERE entry_date >= CURDATE() - INTERVAL p_days DAY;
-
+WHERE entry_date >= CURDATE() - INTERVAL p_days DAY AND user_id = p_user_id;
 END //
-
 DELIMITER ;
 
 delimiter //
-create function get_low_sleep_streak(p_entry_date DATE)
-returns int
-deterministic
-begin
-    declare streak int default 0;
+create function get_low_sleep_streak(p_entry_date DATE, p_user_id INT)
+    returns int
+    deterministic
+    begin
+        declare streak int default 0;
 
-    with recursive streak_dates as (
-        select entry_date
-        from daily_entries
-        where entry_date = p_entry_date
-          and hours_slept <= 6
+        with recursive streak_dates as (
+            select entry_date
+            from daily_entries
+            where entry_date = p_entry_date and user_id = p_user_id
+              and hours_slept <= 6
 
-        union all
+            union all
 
-        select d.entry_date
-        from daily_entries d
-        join streak_dates sd
-          on d.entry_date = date_sub(sd.entry_date, interval 1 day)
-        where d.hours_slept <= 6
-    )
-    select count(*)
-    into streak
-    from streak_dates;
+            select d.entry_date
+            from daily_entries d
+            join streak_dates sd
+              on d.entry_date = date_sub(sd.entry_date, interval 1 day)
+            where d.hours_slept <= 6  and user_id = p_user_id
+        )
+        select count(*)
+        into streak
+        from streak_dates;
 
-    return streak;
-end //
+        return streak;
+    end //
 delimiter ;
-
-show triggers;
 
 
 
 delimiter //
 create trigger low_sleep_alert
-after insert on daily_entries
-for each row
-begin
+    after insert on daily_entries
+    for each row
+    begin
 	declare consecutive_days int default 0;
 	if new.hours_slept <= 6 then
-		set consecutive_days = get_low_sleep_streak(new.entry_date);
-		if consecutive_days >= 3 then 
-			insert into alerts(entry_date, alert_type, alert_message)
-            values(new.entry_date, "Low sleep streak", concat(consecutive_days, " days with low sleep"));
+		set consecutive_days = get_low_sleep_streak(new.entry_date, new.user_id);
+		if consecutive_days >= 3 then
+			insert into alerts(user_id, entry_date, alert_type, alert_message)
+            values(new.user_id, new.entry_date, "Low sleep streak", concat(consecutive_days, " days with low sleep"));
 		end if;
 	end if;
-end //
+    end //
 delimiter ;
 
 DELIMITER //
-CREATE FUNCTION avg_hours_of_sleep()
-RETURNS DECIMAL (3,1)
-DETERMINISTIC 
-BEGIN 
+    CREATE FUNCTION avg_hours_of_sleep(p_user_id int)
+    RETURNS DECIMAL (3,1)
+    DETERMINISTIC
+    BEGIN
     DECLARE avg_hours DECIMAL(3,1);
     SELECT ROUND(AVG(hours_slept), 1) into avg_hours
-    FROM daily_entries;        
+    FROM daily_entries
+    WHERE user_id = p_user_id;
     RETURN avg_hours;
-END //
+    END//
 DELIMITER ;
     
