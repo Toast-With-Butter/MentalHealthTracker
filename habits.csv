@@ -1,5 +1,9 @@
-habit_id,habit_name,entry_date,notes
-"1","2 km run","2026-03-01","A run in the forest"
-"2","Crochet","2026-03-01","Making a sweater"
-"3","Reading","2026-03-02","Just one more chapter!"
-"4","Watching Emily in Paris","2026-03-02","Why is she in Italy now?"
+user_id,habit_id,habit_name,entry_date,notes
+1,1,"2 km run",2026-03-01,"A run in the forest"
+1,2,Crochet,2026-03-01,"Making a sweater"
+1,3,Reading,2026-03-02,"Just one more chapter!"
+1,4,"Watching Emily in Paris",2026-03-02,"Why is she in Italy now?"
+1,5,Drawing,2026-03-08,"Making some sketches when I feel inspired"
+1,6,Painting,2026-03-08,"I prefer digital painting, but acrylics are fun too!!"
+1,7,Studying,2026-03-08,"Doing some schoolwork."
+1,8,Gaming,2026-03-08,"Gaming with my friends."

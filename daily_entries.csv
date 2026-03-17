@@ -1,8 +1,16 @@
-entry_date,hours_slept,mood_level,stress_level,energy_level,notes
-"2026-03-01","5","3","7","4","Lots of schoolwork on little sleep"
-"2026-03-02","7","6","2","7",\N
-"2026-03-03","6","5","4","5",\N
-"2026-03-04","8","7","3","7","Had fun with friends today"
-"2026-03-05","4","3","6","3","Slept pretty poorly"
-"2026-03-06","5","9","2","7","Didn't sleep that much, but had a good day overall"
-"2026-03-07","5","6","5","5","Worked a bit extra on schoolwork, got some things done"
+user_id,entry_date,hours_slept,mood_level,stress_level,energy_level,notes
+1,2026-02-26,8,9,7,4,"Had a great time with friends"
+1,2026-02-27,8,9,8,6,"A good day overall"
+1,2026-02-28,8,9,7,7,"Had a great time with friends"
+1,2026-03-01,5,3,7,4,"Lots of schoolwork on little sleep"
+1,2026-03-02,7,6,2,7,\N
+1,2026-03-03,6,5,4,5,\N
+1,2026-03-04,8,7,3,7,"Had fun with friends today"
+1,2026-03-05,4,3,6,3,"Slept pretty poorly"
+1,2026-03-06,5,9,2,7,"Didn't sleep that much, but had a good day overall"
+1,2026-03-07,7,7,6,5,"A little bit stressed, but feeling good otherwise"
+1,2026-03-08,5,6,5,5,"Last push for the project!"
+1,2026-03-09,5,8,5,6,"Done with one project, time to focus on other studies"
+1,2026-03-10,5,5,3,4,"Taking it slow today"
+1,2026-03-11,3,6,5,5,"Another project done! yay!"
+1,2026-03-12,3,8,4,10,"Good day!"

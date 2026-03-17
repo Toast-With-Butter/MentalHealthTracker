@@ -2,35 +2,54 @@ CREATE DATABASE IF NOT EXISTS mental_health_tracker;
 USE mental_health_tracker;
 
 CREATE TABLE habits(
+	user_id INT NOT NULL,
 	habit_id INT AUTO_INCREMENT PRIMARY KEY,
 	habit_name VARCHAR(100) NOT NULL,
     entry_date DATE NOT NULL DEFAULT (CURDATE()),
-    notes VARCHAR(255) NULL
+    notes VARCHAR(255) NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
     );
 
+create table users(
+	user_id int auto_increment primary key,
+    user_name VARCHAR(255) not null,
+    user_email VARCHAR(255)
+    );
+    
+describe daily_entries;
+insert into users values (0, 'test_name', 'test_email@test.com');
+select * from users;
 CREATE TABLE habit_logs(
+	user_id INT NOT NULL,
 	habit_log_id INT AUTO_INCREMENT PRIMARY KEY, 
     habit_id INT NOT NULL,
     entry_date DATE NOT NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (habit_id, entry_date),
-    FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
+    FOREIGN KEY (habit_id) REFERENCES habits(habit_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
     );
 
+
 CREATE TABLE IF NOT EXISTS daily_entries (
+	user_id INT NOT NULL,
     entry_date DATE NOT NULL PRIMARY KEY DEFAULT (CURDATE()),
     hours_slept INT NOT NULL,
     mood_level INT NOT NULL,
     stress_level INT NOT NULL,
     energy_level INT NOT NULL,
-    notes VARCHAR(255)
+    notes VARCHAR(255),
+    CONSTRAINT user_entry UNIQUE (user_id,entry_date),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS alerts(
+	user_id INT NOT NULL,
     entry_date DATE DEFAULT (CURDATE()),
     alert_id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
     alert_type VARCHAR(100) NOT NULL,
-    alert_message VARCHAR(255) NOT NULL
+    alert_message VARCHAR(255) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 

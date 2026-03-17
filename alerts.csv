@@ -1,1 +1,2 @@
-entry_date,alert_id,alert_type,alert_message
+user_id,entry_date,alert_id,alert_type,alert_message
+1,2026-03-12,1,"Low sleep streak","5 days with low sleep"

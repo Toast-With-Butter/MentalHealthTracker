@@ -22,9 +22,9 @@ def insert_habits(conn):
         reader = csv.DictReader(f)
         for row in reader:
             cur.execute("""
-                INSERT IGNORE INTO habits (habit_id, habit_name, entry_date, notes)
-                VALUES (%s,%s, %s, %s)
-            """, (row["habit_id"], row["habit_name"], row["entry_date"], row["notes"]))
+                INSERT IGNORE INTO habits (user_id, habit_id, habit_name, entry_date, notes)
+                VALUES (%s, %s,%s, %s, %s)
+            """, (row["user_id"], row["habit_id"], row["habit_name"], row["entry_date"], row["notes"]))
     conn.commit()
 
 def insert_habit_logs(conn):
@@ -33,9 +33,9 @@ def insert_habit_logs(conn):
         reader = csv.DictReader(f)
         for row in reader:
             cur.execute("""
-                INSERT IGNORE INTO habit_logs (habit_log_id, habit_id, entry_date, completed)
-                VALUES (%s,%s, %s, %s)
-            """, (row["habit_log_id"], row["habit_id"], row["entry_date"], row["completed"]))
+                INSERT IGNORE INTO habit_logs (user_id, habit_log_id, habit_id, entry_date, completed)
+                VALUES (%s, %s,%s, %s, %s)
+            """, (row["user_id"],row["habit_log_id"], row["habit_id"], row["entry_date"], row["completed"]))
     conn.commit()
 
 def insert_daily_entries(conn):
@@ -44,9 +44,9 @@ def insert_daily_entries(conn):
         reader = csv.DictReader(f)
         for row in reader:
             cur.execute("""
-                INSERT IGNORE INTO daily_entries (entry_date, hours_slept, mood_level, stress_level, energy_level, notes)
-                VALUES (%s,%s, %s, %s, %s, %s)
-            """, (row["entry_date"], row["hours_slept"], row["mood_level"], row["stress_level"], row["energy_level"], row["notes"]))
+                INSERT IGNORE INTO daily_entries (user_id, entry_date, hours_slept, mood_level, stress_level, energy_level, notes)
+                VALUES (%s, %s,%s, %s, %s, %s, %s)
+            """, (row["user_id"], row["entry_date"], row["hours_slept"], row["mood_level"], row["stress_level"], row["energy_level"], row["notes"]))
     conn.commit()
 
 def insert_alerts(conn):
@@ -55,7 +55,7 @@ def insert_alerts(conn):
         reader = csv.DictReader(f)
         for row in reader:
             cur.execute("""
-                INSERT IGNORE INTO alerts (entry_date, alert_id, alert_type, alert_message)
-                VALUES (%s,%s, %s, %s)
-            """, (row["entry_date"], row["alert_id"], row["alert_type"], row["alert_message"]))
+                INSERT IGNORE INTO alerts (user_id, entry_date, alert_id, alert_type, alert_message)
+                VALUES (%s, %s,%s, %s, %s)
+            """, (row["user_id"], row["entry_date"], row["alert_id"], row["alert_type"], row["alert_message"]))
     conn.commit()
