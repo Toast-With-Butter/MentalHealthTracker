@@ -14,3 +14,6 @@ Example can be found in .env.example
 
 The seed data is located in csv files.
 Bootstrapping the database is taken care of by the app.
+
+You can change the user in the menu. The user id 1 is reserved for the seeded user.
+You can use another id if you would like to start with an empty user.

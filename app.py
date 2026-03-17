@@ -106,8 +106,8 @@ def log_habit(conn, u_id):
         cur.close()
         cur = conn.cursor()
         cur.execute(
-            "SELECT habit_id, entry_date FROM habit_logs WHERE habit_id = %s AND user_id = %s AND entry_date = CURDATE()",
-            (h_id,u_id, )
+            "SELECT habit_id, entry_date FROM habit_logs WHERE habit_id = %s AND entry_date = CURDATE()",
+            (h_id, )
         )
         rows = cur.fetchall()
         if len(rows) > 0:
@@ -116,9 +116,9 @@ def log_habit(conn, u_id):
             cur.close()
             return
 
-        sql = "INSERT IGNORE INTO habit_logs (user_id, habit_id, completed)" \
-              "VALUES (%s, %s, %s)"
-        cur.execute(sql, (u_id, h_id, 1))
+        sql = "INSERT IGNORE INTO habit_logs (habit_id, entry_date, completed)" \
+              "VALUES (%s,CURDATE() , %s)"
+        cur.execute(sql, (h_id, 1))
         conn.commit()
 
         print("Good job on completing your habit. Keep it up!")
@@ -172,8 +172,10 @@ def print_avg_sleep(conn, u_id):
     cur = conn.cursor()
     cur.execute("SELECT avg_hours_of_sleep(%s)", (u_id,))
     hours = cur.fetchone()
-    print(f"Average hours of sleep: {hours[0]:.1f}")
-
+    if hours[0] is None:
+        print("No sleep data available.")
+    else:
+        print(f"Average hours of sleep: {hours[0]:.1f}")
     input("Press enter to continue.")
     cur.close()
 
@@ -356,14 +358,12 @@ def init_schema(conn, db_name: str) -> None:
 
     query = """
     CREATE TABLE IF NOT EXISTS habit_logs(
-        user_id INT NOT NULL,
         habit_log_id INT AUTO_INCREMENT PRIMARY KEY, 
         habit_id INT NOT NULL,
         entry_date DATE NOT NULL,
         completed BOOLEAN NOT NULL DEFAULT FALSE,
         UNIQUE (habit_id, entry_date),
-        FOREIGN KEY (habit_id) REFERENCES habits(habit_id),
-        FOREIGN KEY (user_id) REFERENCES users(user_id)
+        FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
     )
     """
     cur.execute(query)

@@ -33,9 +33,9 @@ def insert_habit_logs(conn):
         reader = csv.DictReader(f)
         for row in reader:
             cur.execute("""
-                INSERT IGNORE INTO habit_logs (user_id, habit_log_id, habit_id, entry_date, completed)
-                VALUES (%s, %s,%s, %s, %s)
-            """, (row["user_id"],row["habit_log_id"], row["habit_id"], row["entry_date"], row["completed"]))
+                INSERT IGNORE INTO habit_logs (habit_log_id, habit_id, entry_date, completed)
+                VALUES (%s,%s, %s, %s)
+            """, (row["habit_log_id"], row["habit_id"], row["entry_date"], row["completed"]))
     conn.commit()
 
 def insert_daily_entries(conn):
